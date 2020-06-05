@@ -31,14 +31,14 @@ class Direction(Enum):
 	LEFT = 3
 	RIGHT = 4
 
-	def key(self, key):
-		if key == 'w':
+	def key(self):
+		if self == 'w':
 			return Direction.UP
-		elif key == 's':
+		elif self == 's':
 			return Direction.DOWN
-		elif key == 'a':
+		elif self == 'a':
 			return Direction.LEFT
-		elif key == 'd':
+		elif self == 'd':
 			return Direction.RIGHT
 
 		
@@ -80,72 +80,64 @@ class Snake(Point):
 
 class Board():
 	"""Playing board."""
+	snake = Snake
+	food = Food
 	
 	def __init__(self, width, height, snake, food):
 		self.width = width
 		self.height = height
 		self.board = [[Point(0, 0) for x in range(self.height)] for y in range(self.width)]
-		self.board[snake.x][snake.y] = snake
-		self.board[food.x][food.y] = food
+		self.snake = snake
+		self.food = food
 	
 	def draw(self):
-		# find snake head on board
-		# TODO to find_head() function, or keep head in a property and get rid of for's in move()?
-		# debug = ""
-		for i in range(self.width):
-			for j in range(self.height):
-				if isinstance(self.board[i][j], Snake):
-					snake = self.board[i][j]
-					if i == snake.body[0].x and j == snake.body[0].y:
-						# debug += "snake head at {0},{1}\n".format(i, j)
-						# draw snake body on board
-						for body_point in snake.body:
-							self.board[body_point.x][body_point.y] = snake
-							# debug += "snake body at {0},{1}\n".format(body_point.x, body_point.y)
-		# print(debug)
+		# draw snake on board
+
+		for body_point in self.snake.body:
+			# TODO redundant setting of Snake instance on all body points?
+			self.board[body_point.x][body_point.y] = self.snake
+
+		# draw food
+		self.board[self.food.x][self.food.y] = self.food
 
 		# draw board
-		for i in range(self.width):
-			for j in range(self.height):
-				self.board[i][j].draw(i, j)
+		for x in range(self.width):
+			for y in range(self.height):
+				self.board[x][y].draw(x, y)
 			print()
 
-			
-	# TODO use only x+y or i+j?
+
 	def move(self, direction):
-		for i in range(self.width):
-			for j in range(self.height):
-				if isinstance(self.board[i][j], Snake):
-					snake = self.board[i][j]
-					if i == snake.body[0].x and j == snake.body[0].y:
-						# set last tail point from Snake to Point type
-						self.board[snake.tail().x][snake.tail().y] = Point(0, 0)
+		# check if snake's new direction is valid
+		self.snake.check_direction(direction)
+		self.snake.direction = direction
 
-						# move the snake's tail
-						snake.move_body()
+		# set last tail point from Snake to Point type
+		tail = self.snake.tail()
+		self.board[tail.x][tail.y] = Point(0, 0)
 
-						# check if snake's new direction is valid
-						snake.check_direction(direction)
-						snake.direction = direction
+		# move the snake's body (without head)
+		self.snake.move_body()
 
-						if direction == Direction.UP:
-							# move head in the direction
-							snake.body[0].x -= 1
-							# update snake head position on the board
-							self.board[i - 1][j] = snake
-							return
-						elif direction == Direction.DOWN:
-							snake.body[0].x += 1
-							self.board[i + 1][j] = snake
-							return
-						elif direction == Direction.LEFT:
-							snake.body[0].y -= 1
-							self.board[i][j - 1] = snake
-							return
-						elif direction == Direction.RIGHT:
-							snake.body[0].y += 1
-							self.board[i][j + 1] = snake
-							return
+		head = self.snake.head()
+		if direction == Direction.UP:
+			# update snake head position on the board
+			self.board[head.x - 1][head.y] = Snake(0, 0)
+			# move head in the direction
+			head.x -= 1
+			return
+		elif direction == Direction.DOWN:
+			self.board[head.x + 1][head.y] = Snake(0, 0)
+			head.x += 1
+			return
+		elif direction == Direction.LEFT:
+			self.board[head.x][head.y - 1] = Snake(0, 0)
+			head.y -= 1
+			return
+		elif direction == Direction.RIGHT:
+			self.board[head.x][head.y + 1] = Snake(0, 0)
+			head.y += 1
+			return
 
 
 class DirectionException(Exception):
