@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from enum import Enum
 
+import random
+
 
 class Point:
 	"""Base class for all points on the board with x and y coordinates."""
@@ -57,6 +59,9 @@ class Snake(Point):
 	def tail(self):
 		return self.body[len(self.body) - 1]
 		
+	def eat(self):
+		self.body.append(Point(self.tail().x, self.tail().y))
+
 	def move_body(self):
 		k = len(self.body) - 1 
 		while len(self.body) > k > 0:
@@ -78,10 +83,11 @@ class Snake(Point):
 			print('o', end='')
 
 
-class Board():
+class Board:
 	"""Playing board."""
 	snake = Snake
 	food = Food
+	score = 0
 	
 	def __init__(self, width, height, snake, food):
 		self.width = width
@@ -92,9 +98,7 @@ class Board():
 	
 	def draw(self):
 		# draw snake on board
-
 		for body_point in self.snake.body:
-			# TODO redundant setting of Snake instance on all body points?
 			self.board[body_point.x][body_point.y] = self.snake
 
 		# draw food
@@ -106,35 +110,56 @@ class Board():
 				self.board[x][y].draw(x, y)
 			print()
 
+	def print_score(self):
+		print('Score: {0}'.format(self.score))
+
+	def spawn_new_food(self, next_point):
+		if isinstance(next_point, Food):
+			x = random.randint(0, self.width-1)
+			y = random.randint(0, self.height-1)
+
+			# spawn new food on the board, not on the snake or the current food
+			while isinstance(self.board[x][y], Snake) or (x == next_point.x and y == next_point.y):
+				x = random.randint(0, self.width-1)
+				y = random.randint(0, self.height-1)
+
+			self.food.x = x
+			self.food.y = y
+			self.snake.eat()
+			self.score += 1
+		else:
+			# set last tail point from Snake to Point type
+			tail = self.snake.tail()
+			self.board[tail.x][tail.y] = Point(0, 0)
+
+		# move the snake's body (without head)
+		self.snake.move_body()
 
 	def move(self, direction):
 		# check if snake's new direction is valid
 		self.snake.check_direction(direction)
 		self.snake.direction = direction
 
-		# set last tail point from Snake to Point type
-		tail = self.snake.tail()
-		self.board[tail.x][tail.y] = Point(0, 0)
-
-		# move the snake's body (without head)
-		self.snake.move_body()
-
 		head = self.snake.head()
 		if direction == Direction.UP:
+			self.spawn_new_food(self.board[head.x - 1][head.y])
 			# update snake head position on the board
 			self.board[head.x - 1][head.y] = Snake(0, 0)
 			# move head in the direction
 			head.x -= 1
 			return
 		elif direction == Direction.DOWN:
+			self.spawn_new_food(self.board[head.x + 1][head.y])
 			self.board[head.x + 1][head.y] = Snake(0, 0)
 			head.x += 1
 			return
 		elif direction == Direction.LEFT:
+			self.spawn_new_food(self.board[head.x][head.y - 1])
 			self.board[head.x][head.y - 1] = Snake(0, 0)
 			head.y -= 1
 			return
 		elif direction == Direction.RIGHT:
+			self.spawn_new_food(self.board[head.x][head.y + 1])
 			self.board[head.x][head.y + 1] = Snake(0, 0)
 			head.y += 1
 			return
@@ -146,13 +171,15 @@ class DirectionException(Exception):
 
 if __name__ == '__main__':
 	try:
-		board = Board(11, 19, Snake(5, 9), Food(7, 14))
+		board = Board(11, 19, Snake(5, 9), Food(6, 12))
 		board.draw()
+		board.print_score()
 		while True:
-			mode=input('Input: ')
+			mode = input('Input: ')
 			if mode in ['w', 's', 'a', 'd']:
 				board.move(Direction.key(mode))
 				board.draw()
+				board.print_score()
 			else:
 				print('Invalid input!')
 
