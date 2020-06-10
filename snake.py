@@ -51,7 +51,7 @@ class Direction(Enum):
 
 
 class Snake(Point):
-	"""The snake itself - represented by a list of body Points."""
+	"""The snake - represented by a list of Points."""
 	body = [Point]
 	direction = Direction.RIGHT
 
@@ -75,7 +75,7 @@ class Snake(Point):
 			self.body[k].y = self.body[k - 1].y
 			k -= 1
 
-	def valid_direction(self, new_direction):
+	def validate_direction(self, new_direction):
 		if new_direction == Direction.UP and self.direction == Direction.DOWN \
 				or new_direction == Direction.DOWN and self.direction == Direction.UP \
 				or new_direction == Direction.LEFT and self.direction == Direction.RIGHT \
@@ -118,62 +118,63 @@ class Board:
 				self.board[x][y].draw(x, y)
 			print()
 
-	def print_score(self):
 		print('Score: {0}'.format(self.score))
 
+	def next_turn(self, new_direction):
+		# check if snake's new direction is valid
+		if self.snake.validate_direction(new_direction):
+			self.snake.direction = new_direction
+
+		next_point = Point
+		head = self.snake.head()
+		if self.snake.direction == Direction.UP:
+			next_point = Point(head.x - 1, head.y)
+		elif self.snake.direction == Direction.DOWN:
+			next_point = Point(head.x + 1, head.y)
+		elif self.snake.direction == Direction.LEFT:
+			next_point = Point(head.x, head.y - 1)
+		elif self.snake.direction == Direction.RIGHT:
+			next_point = Point(head.x, head.y + 1)
+
+		self.detect_collision(next_point)
+		self.spawn_new_food(next_point)
+
+		# move the snake's body (without head)
+		self.snake.move_body()
+		# update snake head position on the board
+		self.board[next_point.x][next_point.y] = self.snake
+		head.x = next_point.x
+		head.y = next_point.y
+
+	def detect_collision(self, next_point):
+		if next_point.x == self.width or next_point.y == self.height or next_point.x == -1 or next_point.y == -1:
+			raise CollisionException
+		elif isinstance(self.board[next_point.x][next_point.y], Snake):
+			raise CollisionException
+
 	def spawn_new_food(self, next_point):
-		if isinstance(next_point, Food):
-			x = random.randint(0, self.width-1)
-			y = random.randint(0, self.height-1)
+		# if the next point is Food, eat it and spawn a new one
+		if isinstance(self.board[next_point.x][next_point.y], Food):
+			x = random.randint(0, self.width - 1)
+			y = random.randint(0, self.height - 1)
 
 			# spawn new food on the board, not on the snake or the current food
-			while isinstance(self.board[x][y], Snake) or (x == next_point.x and y == next_point.y):
-				x = random.randint(0, self.width-1)
-				y = random.randint(0, self.height-1)
+			while isinstance(self.board[x][y], Snake) or \
+					x == self.board[next_point.x][next_point.y].x and y == self.board[next_point.x][next_point.y].y:
+				x = random.randint(0, self.width - 1)
+				y = random.randint(0, self.height - 1)
 
 			self.food.x = x
 			self.food.y = y
 			self.snake.eat()
 			self.score += 1
 		else:
-			# set last tail point from Snake to Point type
+			# else set last tail point from Snake to Point type
 			tail = self.snake.tail()
 			self.board[tail.x][tail.y] = Point(0, 0)
 
-		# move the snake's body (without head)
-		self.snake.move_body()
 
-	def move(self, new_direction):
-		# check if snake's new direction is valid
-		if self.snake.valid_direction(new_direction):
-			self.snake.direction = new_direction
-
-		head = self.snake.head()
-		if self.snake.direction == Direction.UP:
-			self.spawn_new_food(self.board[head.x - 1][head.y])
-			# update snake head position on the board
-			self.board[head.x - 1][head.y] = Snake(0, 0)
-			# move head in the direction
-			head.x -= 1
-			return
-		elif self.snake.direction == Direction.DOWN:
-			self.spawn_new_food(self.board[head.x + 1][head.y])
-			self.board[head.x + 1][head.y] = Snake(0, 0)
-			head.x += 1
-			return
-		elif self.snake.direction == Direction.LEFT:
-			self.spawn_new_food(self.board[head.x][head.y - 1])
-			self.board[head.x][head.y - 1] = Snake(0, 0)
-			head.y -= 1
-			return
-		elif self.snake.direction == Direction.RIGHT:
-			self.spawn_new_food(self.board[head.x][head.y + 1])
-			self.board[head.x][head.y + 1] = Snake(0, 0)
-			head.y += 1
-			return
-
-
-class DirectionException(Exception):
+class CollisionException(Exception):
 	pass
 
 
@@ -200,6 +201,8 @@ class NonBlocking(object):
 	def __exit__(self, *args):
 		fcntl.fcntl(self.fd, fcntl.F_SETFL, self.orig_fl)
 
+# TODO implement successful game end
+# TODO correct initial snake length
 
 if __name__ == '__main__':
 	# turn time in seconds - the time it takes to refresh the board
@@ -210,7 +213,6 @@ if __name__ == '__main__':
 	# init board size, snake and food position
 	board = Board(11, 19, Snake(5, 9), Food(6, 12))
 	board.draw()
-	board.print_score()
 
 	try:
 		last_update = time.time()
@@ -226,15 +228,16 @@ if __name__ == '__main__':
 						# x1b is ESC - ends the game
 						break
 
-					time.sleep(0.1)
+					time.sleep(0.05)
 
 					# once in a specified turn_time, move the board and redraw it
 					if time.time() - last_update > turn_time:
-						board.move(direction)
+						board.next_turn(direction)
 						board.draw()
-						board.print_score()
 						last_update = time.time()
 
+	except CollisionException:
+		print('GAME OVER :(')
 	except IOError:
 		print('I/O not ready.')
 	except KeyboardInterrupt:
