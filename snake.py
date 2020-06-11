@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 from enum import Enum
 from nbstdin import NonBlocking, Raw
+from nokia_lcd import NokiaLCD
+from PIL import Image, ImageDraw
 
 import random
 import time
@@ -101,8 +103,30 @@ class Board:
 		self.snake = snake
 		self.food = food
 
-	def draw(self):
-		# draw snake on board
+	def to_image(self, width, height):
+		# create blank image for drawing with 1-bit color
+		image = Image.new('1', (width, height))
+		draw = ImageDraw.Draw(image)
+
+		# draw a white filled box to clear the image
+		draw.rectangle((0, 0, width, height), outline=255, fill=255)
+		
+		# draw board boundaries
+		draw.rectangle((0, 0, width-2, height-2), outline=0, fill=255)
+		
+		# draw snake
+		for body_point in self.snake.body:
+			x = body_point.x
+			y = body_point.y
+			if x % 2 + 1 == 0:
+				draw.rectangle((2 + (y*4), 2 + (x*2), 4 + (y*4), 4 + (x*2)), outline=0, fill=0)
+			else:
+				draw.rectangle((2 + (y*4), 2 + (x*4), 4 + (y*4), 4 + (x*4)), outline=0, fill=0)
+			
+		return image
+		
+	def to_stdout(self):
+		# draw snake
 		for body_point in self.snake.body:
 			self.board[body_point.x][body_point.y] = self.snake
 
@@ -177,6 +201,11 @@ class CollisionException(Exception):
 
 # TODO implement successful game end
 # TODO correct initial snake length
+# TODO add cmd parameter to decide if stdout or LCD should be used
+# TODO links between snake's body points
+# TODO draw food on LCD
+# TODO game over on LCD
+
 
 if __name__ == '__main__':
 	# turn time in seconds - the time it takes to refresh the board
@@ -185,8 +214,12 @@ if __name__ == '__main__':
 	direction = Direction.RIGHT
 
 	# init board size, snake and food position
-	board = Board(11, 19, Snake(5, 9), Food(6, 12))
-	board.draw()
+	board = Board(11, 20, Snake(5, 9), Food(6, 12))
+	# uncomment to display stdout output
+	# board.to_stdout()
+	
+	lcd = NokiaLCD()
+	lcd.display_image(board.to_image(lcd.width, lcd.height))
 
 	try:
 		last_update = time.time()
@@ -207,7 +240,9 @@ if __name__ == '__main__':
 					# once in a specified turn_time, move the board and redraw it
 					if time.time() - last_update > turn_time:
 						board.next_turn(direction)
-						board.draw()
+						# uncomment to display stdout output
+						# board.to_stdout()
+						lcd.display_image(board.to_image(lcd.width, lcd.height))
 						last_update = time.time()
 
 	except CollisionException:
