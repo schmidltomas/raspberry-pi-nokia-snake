@@ -56,7 +56,8 @@ class Snake(Point):
 
 	def __init__(self, x, y):
 		Point.__init__(self, x, y)
-		self.body = [Point(x, y), Point(x, y - 1), Point(x, y - 2), Point(x, y - 3)]
+		self.body = [Point(x, y), Point(x, y - 1), Point(x, y - 2), Point(x, y - 3), Point(x, y - 4), 
+					 Point(x, y - 5), Point(x, y - 6), Point(x, y - 7), Point(x, y - 8)]
 
 	def head(self):
 		return self.body[0]
@@ -68,11 +69,11 @@ class Snake(Point):
 		self.body.append(Point(self.tail().x, self.tail().y))
 
 	def move_body(self):
-		k = len(self.body) - 1
-		while len(self.body) > k > 0:
-			self.body[k].x = self.body[k - 1].x
-			self.body[k].y = self.body[k - 1].y
-			k -= 1
+		i = len(self.body) - 1
+		while len(self.body) > i > 0:
+			self.body[i].x = self.body[i - 1].x
+			self.body[i].y = self.body[i - 1].y
+			i -= 1
 
 	def validate_direction(self, new_direction):
 		if new_direction == Direction.UP and self.direction == Direction.DOWN \
@@ -102,6 +103,13 @@ class Board:
 		self.board = [[Point(0, 0) for x in range(self.height)] for y in range(self.width)]
 		self.snake = snake
 		self.food = food
+		
+		# init snake position
+		for body_point in self.snake.body:
+			self.board[body_point.x][body_point.y] = self.snake
+
+		# init food position
+		self.board[self.food.x][self.food.y] = self.food
 
 	def to_image(self, width, height):
 		# create blank image for drawing with 1-bit color
@@ -114,25 +122,44 @@ class Board:
 		# draw board boundaries
 		draw.rectangle((0, 0, width-2, height-2), outline=0, fill=255)
 		
-		# draw snake
-		for body_point in self.snake.body:
-			x = body_point.x
-			y = body_point.y
-			if x % 2 + 1 == 0:
-				draw.rectangle((2 + (y*4), 2 + (x*2), 4 + (y*4), 4 + (x*2)), outline=0, fill=0)
-			else:
-				draw.rectangle((2 + (y*4), 2 + (x*4), 4 + (y*4), 4 + (x*4)), outline=0, fill=0)
+		for i in range(len(self.snake.body)):
+			x_1 = self.snake.body[i].x * 4
+			y_1 = self.snake.body[i].y * 4
+			x_0 = self.snake.body[i - 1].x * 4
+			y_0 = self.snake.body[i - 1].y * 4
 			
+			if (x_0 - x_1 == 0 and y_0 - y_1 == -4):
+				draw.rectangle((0 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
+				# snake body turns left
+			elif (x_0 - x_1 == -4 and y_0 - y_1 == 0):
+				draw.rectangle((2 + y_1, 1 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
+				# snake body turns up
+			elif (x_0 - x_1 == 0 and y_0 - y_1 == 4):
+				draw.rectangle((2 + y_1, 2 + x_1, 5 + y_1, 4 + x_1), outline=0, fill=0)
+				# snake body turns right
+			elif (x_0 - x_1 == 4 and y_0 - y_1 == 0):
+				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 5 + x_1), outline=0, fill=0)
+				# snake body turns down
+			else:
+				# no previous point - head
+				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
+		
+		# draw food
+		if self.food.x % 2 + 1 == 0:
+			x = 3 + (self.food.x*2)
+			y = 3 + (self.food.y*4)
+		else:
+			x = 3 + (self.food.x*4)
+			y = 3 + (self.food.y*4)
+			
+		draw.point((y-1, x))
+		draw.point((y+1, x))
+		draw.point((y, x-1))
+		draw.point((y, x+1))
+		
 		return image
 		
 	def to_stdout(self):
-		# draw snake
-		for body_point in self.snake.body:
-			self.board[body_point.x][body_point.y] = self.snake
-
-		# draw food
-		self.board[self.food.x][self.food.y] = self.food
-
 		# draw board
 		for x in range(self.width):
 			for y in range(self.height):
@@ -187,6 +214,7 @@ class Board:
 
 			self.food.x = x
 			self.food.y = y
+			self.board[x][y] = Food(x, y)
 			self.snake.eat()
 			self.score += 1
 		else:
@@ -200,10 +228,7 @@ class CollisionException(Exception):
 
 
 # TODO implement successful game end
-# TODO correct initial snake length
 # TODO add cmd parameter to decide if stdout or LCD should be used
-# TODO links between snake's body points
-# TODO draw food on LCD
 # TODO game over on LCD
 
 
@@ -214,7 +239,7 @@ if __name__ == '__main__':
 	direction = Direction.RIGHT
 
 	# init board size, snake and food position
-	board = Board(11, 20, Snake(5, 9), Food(6, 12))
+	board = Board(11, 20, Snake(10, 8), Food(5, 10))
 	# uncomment to display stdout output
 	# board.to_stdout()
 	
