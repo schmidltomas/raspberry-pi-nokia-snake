@@ -7,6 +7,7 @@ from image_pil import Img
 import random
 import time
 import sys
+import argparse
 
 
 class Point:
@@ -38,14 +39,15 @@ class Direction(Enum):
 	LEFT = 3
 	RIGHT = 4
 
-	def from_key(self):
-		if self == 'w':
+	@staticmethod
+	def from_key(input_key):
+		if input_key == 'w':
 			return Direction.UP
-		elif self == 's':
+		elif input_key == 's':
 			return Direction.DOWN
-		elif self == 'a':
+		elif input_key == 'a':
 			return Direction.LEFT
-		elif self == 'd':
+		elif input_key == 'd':
 			return Direction.RIGHT
 
 
@@ -218,12 +220,25 @@ class Board:
 			self.board[tail.x][tail.y] = Point(0, 0)
 
 
+def parse_arguments():
+	parser = argparse.ArgumentParser(description='Play the classic Snake game from old Nokia phones on Raspberry Pi.')
+	parser.add_argument('-i', '--input', default='keyboard', help='Input device', required=False)
+	parser.add_argument('-o', '--output', default='lcd', help='Output device', required=False)
+	args = parser.parse_args()
+
+	if args.input not in ("stdin", "joystick") or args.output not in ("stdout", "lcd"):
+		print("Invalid argument!\nRun with -h argument for help.")
+		sys.exit(1)
+
+	return args.input, args.output
+
+
 class CollisionException(Exception):
 	pass
 
 
-# TODO add cmd parameter to decide if stdout or LCD should be used
-
+# TODO separate main and snake module, directory structure
+# TODO common interface for input and output device
 
 if __name__ == '__main__':
 	# turn time in seconds - the time it takes to refresh the board
@@ -233,11 +248,18 @@ if __name__ == '__main__':
 
 	# init board size, snake and food position
 	board = Board(11, 20, Snake(10, 8), Food(5, 10))
-	# uncomment to display stdout output
-	# board.to_stdout()
+
+	# parse command line arguments
+	input_device, output_device = parse_arguments()
+	if input_device == "joystick":
+		print("Not implemented yet!")
+		sys.exit(1)
 
 	lcd = NokiaLCD()
-	lcd.display_image(board.to_image())
+	if output_device == "lcd":
+		lcd.display_image(board.to_image())
+	else:
+		board.to_stdout()
 
 	try:
 		last_update = time.time()
@@ -258,17 +280,22 @@ if __name__ == '__main__':
 					# once in a specified turn_time, move the board and redraw it
 					if time.time() - last_update > turn_time:
 						board.next_turn(direction)
-						# uncomment to display stdout output
-						# board.to_stdout()
-						lcd.display_image(board.to_image())
 						last_update = time.time()
+						if output_device == "lcd":
+							lcd.display_image(board.to_image())
+						else:
+							board.to_stdout()
 
 	except CollisionException:
 		img = Img(lcd.width, lcd.height)
-		text = 'Game over!\nYour score:\n' + str(board.score)
-		lcd.display_image(img.get_text(text))
-		# print('GAME OVER :(')
+		text = "Game over!\nYour score:\n" + str(board.score)
+
+		if output_device == "lcd":
+			lcd.display_image(img.get_text(text))
+		else:
+			print(text)
+
 	except IOError:
-		print('I/O not ready.')
+		print("I/O not ready.")
 	except KeyboardInterrupt:
 		pass

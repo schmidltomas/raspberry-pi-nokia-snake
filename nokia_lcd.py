@@ -1,10 +1,10 @@
-import time
-
+#!/usr/bin/env python
 import Adafruit_Nokia_LCD as LCD
-import Adafruit_GPIO.SPI as SPI
+
+"""Nokia LCD module using the Adafruit_Nokia_LCD library (https://github.com/adafruit/Adafruit_Nokia_LCD)."""
 
 
-class NokiaLCD():
+class NokiaLCD:
 	# SPI config (defaults to bit-bang SPI interface):
 	display = LCD.PCD8544(dc=27, rst=23, sclk=17, din=18, cs=22)
 	width = LCD.LCDWIDTH
