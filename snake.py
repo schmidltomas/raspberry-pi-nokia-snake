@@ -2,7 +2,7 @@
 from enum import Enum
 from nbstdin import NonBlocking, Raw
 from nokia_lcd import NokiaLCD
-from PIL import Image, ImageDraw
+from image_pil import Img
 
 import random
 import time
@@ -56,8 +56,7 @@ class Snake(Point):
 
 	def __init__(self, x, y):
 		Point.__init__(self, x, y)
-		self.body = [Point(x, y), Point(x, y - 1), Point(x, y - 2), Point(x, y - 3), Point(x, y - 4), 
-					 Point(x, y - 5), Point(x, y - 6), Point(x, y - 7), Point(x, y - 8)]
+		self.body = [Point(x, y - i) for i in range(9)]
 
 	def head(self):
 		return self.body[0]
@@ -103,7 +102,7 @@ class Board:
 		self.board = [[Point(0, 0) for x in range(self.height)] for y in range(self.width)]
 		self.snake = snake
 		self.food = food
-		
+
 		# init snake position
 		for body_point in self.snake.body:
 			self.board[body_point.x][body_point.y] = self.snake
@@ -111,39 +110,36 @@ class Board:
 		# init food position
 		self.board[self.food.x][self.food.y] = self.food
 
-	def to_image(self, width, height):
-		# create blank image for drawing with 1-bit color
-		image = Image.new('1', (width, height))
-		draw = ImageDraw.Draw(image)
+	def to_image(self):
+		img = Img(lcd.width, lcd.height)
+		image, draw = img.get_image()
 
-		# draw a white filled box to clear the image
-		draw.rectangle((0, 0, width, height), outline=255, fill=255)
-		
 		# draw board boundaries
-		draw.rectangle((0, 0, width-2, height-2), outline=0, fill=255)
-		
+		draw.rectangle((0, 0, lcd.width-2, lcd.height-2), outline=0, fill=255)
+
+		# draw snake
 		for i in range(len(self.snake.body)):
 			x_1 = self.snake.body[i].x * 4
 			y_1 = self.snake.body[i].y * 4
 			x_0 = self.snake.body[i - 1].x * 4
 			y_0 = self.snake.body[i - 1].y * 4
-			
-			if (x_0 - x_1 == 0 and y_0 - y_1 == -4):
+
+			if x_0 - x_1 == 0 and y_0 - y_1 == -4:
 				draw.rectangle((0 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
 				# snake body turns left
-			elif (x_0 - x_1 == -4 and y_0 - y_1 == 0):
+			elif x_0 - x_1 == -4 and y_0 - y_1 == 0:
 				draw.rectangle((2 + y_1, 1 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
 				# snake body turns up
-			elif (x_0 - x_1 == 0 and y_0 - y_1 == 4):
+			elif x_0 - x_1 == 0 and y_0 - y_1 == 4:
 				draw.rectangle((2 + y_1, 2 + x_1, 5 + y_1, 4 + x_1), outline=0, fill=0)
 				# snake body turns right
-			elif (x_0 - x_1 == 4 and y_0 - y_1 == 0):
+			elif x_0 - x_1 == 4 and y_0 - y_1 == 0:
 				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 5 + x_1), outline=0, fill=0)
 				# snake body turns down
 			else:
 				# no previous point - head
 				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
-		
+
 		# draw food
 		if self.food.x % 2 + 1 == 0:
 			x = 3 + (self.food.x*2)
@@ -151,16 +147,15 @@ class Board:
 		else:
 			x = 3 + (self.food.x*4)
 			y = 3 + (self.food.y*4)
-			
-		draw.point((y-1, x))
-		draw.point((y+1, x))
-		draw.point((y, x-1))
-		draw.point((y, x+1))
-		
+
+		draw.point((y - 1, x))
+		draw.point((y + 1, x))
+		draw.point((y, x - 1))
+		draw.point((y, x + 1))
+
 		return image
-		
+
 	def to_stdout(self):
-		# draw board
 		for x in range(self.width):
 			for y in range(self.height):
 				self.board[x][y].draw(x, y)
@@ -227,9 +222,7 @@ class CollisionException(Exception):
 	pass
 
 
-# TODO implement successful game end
 # TODO add cmd parameter to decide if stdout or LCD should be used
-# TODO game over on LCD
 
 
 if __name__ == '__main__':
@@ -242,9 +235,9 @@ if __name__ == '__main__':
 	board = Board(11, 20, Snake(10, 8), Food(5, 10))
 	# uncomment to display stdout output
 	# board.to_stdout()
-	
+
 	lcd = NokiaLCD()
-	lcd.display_image(board.to_image(lcd.width, lcd.height))
+	lcd.display_image(board.to_image())
 
 	try:
 		last_update = time.time()
@@ -267,11 +260,14 @@ if __name__ == '__main__':
 						board.next_turn(direction)
 						# uncomment to display stdout output
 						# board.to_stdout()
-						lcd.display_image(board.to_image(lcd.width, lcd.height))
+						lcd.display_image(board.to_image())
 						last_update = time.time()
 
 	except CollisionException:
-		print('GAME OVER :(')
+		img = Img(lcd.width, lcd.height)
+		text = 'Game over!\nYour score:\n' + str(board.score)
+		lcd.display_image(img.get_text(text))
+		# print('GAME OVER :(')
 	except IOError:
 		print('I/O not ready.')
 	except KeyboardInterrupt:

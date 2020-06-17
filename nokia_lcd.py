@@ -3,8 +3,6 @@ import time
 import Adafruit_Nokia_LCD as LCD
 import Adafruit_GPIO.SPI as SPI
 
-from PIL import Image, ImageDraw
-
 
 class NokiaLCD():
 	# SPI config (defaults to bit-bang SPI interface):
