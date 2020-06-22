@@ -1,13 +1,8 @@
 #!/usr/bin/env python
 from enum import Enum
-from nbstdin import NonBlocking, Raw
-from nokia_lcd import NokiaLCD
 from image_pil import Img
 
 import random
-import time
-import sys
-import argparse
 
 
 class Point:
@@ -92,18 +87,23 @@ class Snake(Point):
 			print('o', end='')
 
 
+class CollisionException(Exception):
+	pass
+
+
 class Board:
 	"""Playing board."""
 	snake = Snake
 	food = Food
 	score = 0
 
-	def __init__(self, width, height, snake, food):
+	def __init__(self, width, height, snake, food, lcd):
 		self.width = width
 		self.height = height
 		self.board = [[Point(0, 0) for x in range(self.height)] for y in range(self.width)]
 		self.snake = snake
 		self.food = food
+		self.lcd = lcd
 
 		# init snake position
 		for body_point in self.snake.body:
@@ -113,11 +113,11 @@ class Board:
 		self.board[self.food.x][self.food.y] = self.food
 
 	def to_image(self):
-		img = Img(lcd.width, lcd.height)
+		img = Img(self.lcd.width, self.lcd.height)
 		image, draw = img.get_image()
 
 		# draw board boundaries
-		draw.rectangle((0, 0, lcd.width-2, lcd.height-2), outline=0, fill=255)
+		draw.rectangle((0, 0, self.lcd.width-2, self.lcd.height-2), outline=0, fill=255)
 
 		# draw snake
 		for i in range(len(self.snake.body)):
@@ -218,84 +218,3 @@ class Board:
 			# else set last tail point from Snake to Point type
 			tail = self.snake.tail()
 			self.board[tail.x][tail.y] = Point(0, 0)
-
-
-def parse_arguments():
-	parser = argparse.ArgumentParser(description='Play the classic Snake game from old Nokia phones on Raspberry Pi.')
-	parser.add_argument('-i', '--input', default='keyboard', help='Input device', required=False)
-	parser.add_argument('-o', '--output', default='lcd', help='Output device', required=False)
-	args = parser.parse_args()
-
-	if args.input not in ("stdin", "joystick") or args.output not in ("stdout", "lcd"):
-		print("Invalid argument!\nRun with -h argument for help.")
-		sys.exit(1)
-
-	return args.input, args.output
-
-
-class CollisionException(Exception):
-	pass
-
-
-# TODO separate main and snake module, directory structure
-# TODO common interface for input and output device
-
-if __name__ == '__main__':
-	# turn time in seconds - the time it takes to refresh the board
-	turn_time = 0.5
-	# initial direction is right
-	direction = Direction.RIGHT
-
-	# init board size, snake and food position
-	board = Board(11, 20, Snake(10, 8), Food(5, 10))
-
-	# parse command line arguments
-	input_device, output_device = parse_arguments()
-	if input_device == "joystick":
-		print("Not implemented yet!")
-		sys.exit(1)
-
-	lcd = NokiaLCD()
-	if output_device == "lcd":
-		lcd.display_image(board.to_image())
-	else:
-		board.to_stdout()
-
-	try:
-		last_update = time.time()
-
-		with Raw(sys.stdin):
-			with NonBlocking(sys.stdin):
-				while True:
-					# read input key from stdin
-					key = sys.stdin.read(1)
-					if key in ['w', 's', 'a', 'd']:
-						direction = Direction.from_key(key)
-					elif key == '\x1b':
-						# x1b is ESC - ends the game
-						break
-
-					time.sleep(0.05)
-
-					# once in a specified turn_time, move the board and redraw it
-					if time.time() - last_update > turn_time:
-						board.next_turn(direction)
-						last_update = time.time()
-						if output_device == "lcd":
-							lcd.display_image(board.to_image())
-						else:
-							board.to_stdout()
-
-	except CollisionException:
-		img = Img(lcd.width, lcd.height)
-		text = "Game over!\nYour score:\n" + str(board.score)
-
-		if output_device == "lcd":
-			lcd.display_image(img.get_text(text))
-		else:
-			print(text)
-
-	except IOError:
-		print("I/O not ready.")
-	except KeyboardInterrupt:
-		pass
