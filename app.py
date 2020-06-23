@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-from io.nbstdin import NonBlocking, Raw
-from io.nokia_lcd import NokiaLCD
+from device.nbstdin import NonBlocking, Raw
+from device.nokia_lcd import NokiaLCD
 from common.pillow import Pillow
 from game.snake import Board, Snake, Food, Direction, CollisionException
 
@@ -27,6 +27,8 @@ if __name__ == '__main__':
 	turn_time = 0.5
 	# initial direction is right
 	direction = Direction.RIGHT
+	# init board size, snake and food position
+	board = Board(11, 20, Snake(10, 8), Food(5, 10))
 
 	# parse command line arguments
 	input_device, output_device = parse_arguments()
@@ -35,12 +37,10 @@ if __name__ == '__main__':
 		sys.exit(1)
 
 	lcd = NokiaLCD()
-
-	# init board size, snake and food position
-	board = Board(11, 20, Snake(10, 8), Food(5, 10), lcd)
+	pillow = Pillow(lcd.width, lcd.height)
 
 	if output_device == "lcd":
-		lcd.display_image(board.to_image())
+		lcd.display_image(pillow.draw_board(board))
 	else:
 		board.to_stdout()
 
@@ -65,16 +65,15 @@ if __name__ == '__main__':
 						board.next_turn(direction)
 						last_update = time.time()
 						if output_device == "lcd":
-							lcd.display_image(board.to_image())
+							lcd.display_image(pillow.draw_board(board))
 						else:
 							board.to_stdout()
 
 	except CollisionException:
-		img = Pillow(lcd.width, lcd.height)
 		text = "Game over!\nYour score:\n" + str(board.score)
 
 		if output_device == "lcd":
-			lcd.display_image(img.get_text(text))
+			lcd.display_image(pillow.draw_text(text))
 		else:
 			print(text)
 

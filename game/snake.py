@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from enum import Enum
-from common.pillow import Pillow
 
 import random
 
@@ -97,13 +96,12 @@ class Board:
 	food = Food
 	score = 0
 
-	def __init__(self, width, height, snake, food, lcd):
+	def __init__(self, width, height, snake, food):
 		self.width = width
 		self.height = height
 		self.board = [[Point(0, 0) for x in range(self.height)] for y in range(self.width)]
 		self.snake = snake
 		self.food = food
-		self.lcd = lcd
 
 		# init snake position
 		for body_point in self.snake.body:
@@ -112,64 +110,12 @@ class Board:
 		# init food position
 		self.board[self.food.x][self.food.y] = self.food
 
-	def to_image(self):
-		img = Pillow(self.lcd.width, self.lcd.height)
-		image, draw = img.get_image()
-
-		# draw board boundaries
-		draw.rectangle((0, 0, self.lcd.width-2, self.lcd.height-2), outline=0, fill=255)
-
-		# draw snake
-		for i in range(len(self.snake.body)):
-			x_1 = self.snake.body[i].x * 4
-			y_1 = self.snake.body[i].y * 4
-			x_0 = self.snake.body[i - 1].x * 4
-			y_0 = self.snake.body[i - 1].y * 4
-
-			if x_0 - x_1 == 0 and y_0 - y_1 == -4:
-				draw.rectangle((0 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
-				# snake body turns left
-			elif x_0 - x_1 == -4 and y_0 - y_1 == 0:
-				draw.rectangle((2 + y_1, 1 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
-				# snake body turns up
-			elif x_0 - x_1 == 0 and y_0 - y_1 == 4:
-				draw.rectangle((2 + y_1, 2 + x_1, 5 + y_1, 4 + x_1), outline=0, fill=0)
-				# snake body turns right
-			elif x_0 - x_1 == 4 and y_0 - y_1 == 0:
-				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 5 + x_1), outline=0, fill=0)
-				# snake body turns down
-			else:
-				# no previous point - head
-				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
-
-		# draw food
-		if self.food.x % 2 + 1 == 0:
-			x = 3 + (self.food.x*2)
-			y = 3 + (self.food.y*4)
-		else:
-			x = 3 + (self.food.x*4)
-			y = 3 + (self.food.y*4)
-
-		draw.point((y - 1, x))
-		draw.point((y + 1, x))
-		draw.point((y, x - 1))
-		draw.point((y, x + 1))
-
-		return image
-
-	def to_stdout(self):
-		for x in range(self.width):
-			for y in range(self.height):
-				self.board[x][y].draw(x, y)
-			print()
-
-		print('Score: {0}'.format(self.score))
-
 	def next_turn(self, new_direction):
 		# check if snake's new direction is valid
 		if self.snake.validate_direction(new_direction):
 			self.snake.direction = new_direction
 
+		# determine position of next point
 		next_point = Point
 		head = self.snake.head()
 		if self.snake.direction == Direction.UP:
@@ -218,3 +164,11 @@ class Board:
 			# else set last tail point from Snake to Point type
 			tail = self.snake.tail()
 			self.board[tail.x][tail.y] = Point(0, 0)
+
+	def to_stdout(self):
+		for x in range(self.width):
+			for y in range(self.height):
+				self.board[x][y].draw(x, y)
+			print()
+
+		print('Score: {0}'.format(self.score))
