@@ -4,7 +4,7 @@ from PIL import Image, ImageDraw, ImageFont
 """Wrapper module for Pillow - Python Imaging Library fork (https://github.com/python-pillow/Pillow)."""
 
 
-class Img:
+class Pillow:
 	def __init__(self, width, height):
 		self.width = width
 		self.height = height

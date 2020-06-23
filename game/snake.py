@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from enum import Enum
-from image_pil import Img
+from common.pillow import Pillow
 
 import random
 
@@ -113,7 +113,7 @@ class Board:
 		self.board[self.food.x][self.food.y] = self.food
 
 	def to_image(self):
-		img = Img(self.lcd.width, self.lcd.height)
+		img = Pillow(self.lcd.width, self.lcd.height)
 		image, draw = img.get_image()
 
 		# draw board boundaries

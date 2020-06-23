@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-from nbstdin import NonBlocking, Raw
-from nokia_lcd import NokiaLCD
-from image_pil import Img
-from snake import Board, Snake, Food, Direction, CollisionException
+from io.nbstdin import NonBlocking, Raw
+from io.nokia_lcd import NokiaLCD
+from common.pillow import Pillow
+from game.snake import Board, Snake, Food, Direction, CollisionException
 
 import time
 import sys
@@ -70,7 +70,7 @@ if __name__ == '__main__':
 							board.to_stdout()
 
 	except CollisionException:
-		img = Img(lcd.width, lcd.height)
+		img = Pillow(lcd.width, lcd.height)
 		text = "Game over!\nYour score:\n" + str(board.score)
 
 		if output_device == "lcd":
