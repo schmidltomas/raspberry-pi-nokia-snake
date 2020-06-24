@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 import Adafruit_Nokia_LCD as LCD
 
 """Nokia LCD module using the Adafruit_Nokia_LCD library (https://github.com/adafruit/Adafruit_Nokia_LCD)."""

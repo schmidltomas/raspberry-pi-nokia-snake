@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 from PIL import Image, ImageDraw, ImageFont
 
 """Wrapper module for Pillow - Python Imaging Library fork (https://github.com/python-pillow/Pillow)."""
@@ -20,8 +20,8 @@ class Pillow:
 		return image, draw
 
 	def draw_board(self, board):
-		img = Pillow(self.width, self.height)
-		image, draw = img.create_image()
+		pillow = Pillow(self.width, self.height)
+		image, draw = pillow.create_image()
 
 		# draw board boundaries
 		draw.rectangle((0, 0, self.width - 2, self.height - 2), outline=0, fill=255)
