@@ -27,7 +27,10 @@ def parse_arguments():
 		sys.exit(1)
 
 	if not args.speed.isnumeric():
-		print("Argument " + args.speed + " must be numeric.")
+		print("Argument speed must be integer.")
+		sys.exit(1)
+	elif int(args.speed) >= 11 or int(args.speed) <= 0:
+		print("Argument speed must be between 1 and 10.")
 		sys.exit(1)
 
 	return args
@@ -63,7 +66,7 @@ def main():
 	pillow = Pillow(lcd.width, lcd.height)
 
 	# output the board
-	output_board(board, args.input, lcd, pillow)
+	output_board(board, args.output, lcd, pillow)
 
 	try:
 		last_update = time.time()
@@ -84,7 +87,7 @@ def main():
 					# once in a specified turn_time, move the board and redraw it
 					if time.time() - last_update > (1 / int(args.speed)):
 						board.next_turn(direction)
-						output_board(board, args.input, lcd, pillow)
+						output_board(board, args.output, lcd, pillow)
 						last_update = time.time()
 
 	except CollisionException:

@@ -30,24 +30,28 @@ class Pillow:
 		for i in range(len(board.snake.body)):
 			x_1 = board.snake.body[i].x * 4
 			y_1 = board.snake.body[i].y * 4
-			x_0 = board.snake.body[i - 1].x * 4
-			y_0 = board.snake.body[i - 1].y * 4
+
+			if i == 0:
+				# there is no previous point - draw head
+				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
+				continue
+			else:
+				# else get previous point a form a rectangle with it
+				x_0 = board.snake.body[i - 1].x * 4
+				y_0 = board.snake.body[i - 1].y * 4
 
 			if x_0 - x_1 == 0 and y_0 - y_1 == -4:
-				# snake body turns left
-				draw.rectangle((0 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
+				# next body point is left
+				draw.rectangle((1 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
 			elif x_0 - x_1 == -4 and y_0 - y_1 == 0:
-				# snake body turns up
+				# next body point is up
 				draw.rectangle((2 + y_1, 1 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
 			elif x_0 - x_1 == 0 and y_0 - y_1 == 4:
-				# snake body turns right
+				# next body point is right
 				draw.rectangle((2 + y_1, 2 + x_1, 5 + y_1, 4 + x_1), outline=0, fill=0)
 			elif x_0 - x_1 == 4 and y_0 - y_1 == 0:
-				# snake body turns down
+				# next body point is down
 				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 5 + x_1), outline=0, fill=0)
-			else:
-				# no previous point - head
-				draw.rectangle((2 + y_1, 2 + x_1, 4 + y_1, 4 + x_1), outline=0, fill=0)
 
 		# draw food
 		if board.food.x % 2 + 1 == 0:
